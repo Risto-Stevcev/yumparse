@@ -1,0 +1,30 @@
+{
+  "name": "yumparse",
+  "version": "0.0.1",
+  "description": "A simple, lightweight command line argument parser.",
+  "main": "lib/yumparse.js",
+  "scripts": {
+    "test": "grunt test"
+  },
+  "keywords": [
+    "argument",
+    "parser",
+    "argparse",
+    "cli",
+    "command",
+    "line"
+  ],
+  "author": "Risto Stevcev <risto1@gmail.com>",
+  "license": "BSD",
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-contrib-clean": "^0.6.0",
+    "grunt-contrib-jshint": "^0.10.0",
+    "grunt-jsdoc": "^0.5.7",
+    "grunt-simple-mocha": "^0.4.0",
+    "should": "^4.4.1"
+  },
+  "dependencies": {
+    "mustache": "^0.8.2"
+  }
+}
