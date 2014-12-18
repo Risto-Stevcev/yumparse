@@ -11,7 +11,7 @@ build:
           echo "npm version $(npm -v) running"
 
     - script:
-        name: Deploy to github pages
+        name: deploy to github pages
         code: |-
           git config --global user.name "Risto Stevcev"
           git config --global user.email "risto1@gmail.com"
