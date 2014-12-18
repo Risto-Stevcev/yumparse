@@ -93,9 +93,12 @@ exports.Parser = function(args) {
    */
   this.flagBlock = function() {
     return (this.longFlag ?
-            Array(longestFlag - this.longFlag.length + 1).join(' ') + this.longFlag + ', ' :
-            Array(longestFlag + 1).join(' ') + '  ') +
-           this.shortFlag;
+            
+            (new Array(longestFlag - this.longFlag.length + 1)).join(' ') + 
+            this.longFlag + ', ' :
+
+            (new Array(longestFlag + 1)).join(' ') + '  ') +
+            this.shortFlag;
   };
 
   /** 

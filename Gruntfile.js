@@ -1,7 +1,6 @@
 module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-jshint');
-  grunt.loadNpmTasks('grunt-simple-mocha');
   grunt.loadNpmTasks('grunt-jsdoc');
   grunt.loadNpmTasks('grunt-mocha-istanbul');
   grunt.loadNpmTasks('grunt-codeclimate');
@@ -23,24 +22,9 @@ module.exports = function(grunt) {
         /* Error messages url: 
          * https://github.com/jshint/jshint/blob/2.1.4/src/shared/messages.js */
         options: {
-         // '-W117': true,  // "'{a}' is not defined."
-          '-W097': true,  // "Use the function form of \"use strict\"." 
-          '-W064': true,  // "Missing 'new' prefix when invoking a constructor."
         },
         src: ['src/*.js']
       },
-    },
-    simplemocha: {
-      options: {
-        globals: ['should'],
-        timeout: 3000,
-        ignoreLeaks: false,
-        ui: 'bdd'
-      },
-
-      all: {
-        src: 'test/*.js'
-      }
     },
     jsdoc : {
       dist : {
@@ -79,7 +63,6 @@ module.exports = function(grunt) {
   });
 
 
-  grunt.registerTask('test', ['clean', 'jshint', 'simplemocha']);
-  grunt.registerTask('codecoverage', ['mocha_istanbul', 'codeclimate']);
-  grunt.registerTask('default', ['test', 'jsdoc', 'codecoverage']);
+  grunt.registerTask('test', ['clean', 'jshint', 'mocha_istanbul']);
+  grunt.registerTask('default', ['test', 'codeclimate', 'jsdoc']);
 };
