@@ -4,7 +4,7 @@
   "description": "A simple, lightweight command line argument parser.",
   "main": "lib/yumparse.js",
   "scripts": {
-    "test": "grunt test"
+    "test": "./node_modules/.bin/grunt"
   },
   "keywords": [
     "argument",
@@ -18,6 +18,7 @@
   "license": "BSD",
   "devDependencies": {
     "grunt": "^0.4.5",
+    "grunt-cli": "^0.1.13",
     "grunt-contrib-clean": "^0.6.0",
     "grunt-contrib-jshint": "^0.10.0",
     "grunt-jsdoc": "^0.5.7",
