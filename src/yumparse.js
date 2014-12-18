@@ -163,7 +163,7 @@ exports.Parser = function(args) {
                         }).join(', '));
 
       if (!option.shortFlag.match(/^-[a-z]/))
-        throw new Error('Short flag "' + shortFlag + 
+        throw new Error('Short flag "' + option.shortFlag + 
                         '" must match the format: -[a-z]');
       option.shortFlagName = this.flagToName(option.shortFlag);
       flags[option.shortFlagName] = option;
@@ -347,10 +347,21 @@ exports.Parser = function(args) {
     }).call(this);
 
     if (this.parsedOptions.h || this.parsedOptions.help)
-      displayHelp.call(this);
+      this.displayHelp();
   };
 };
 
+
+var argsToOptions = function(args) {
+  return args.map(function(arg) {
+           return this.parsedOptions[this.flagToName(arg)];
+         }, this)
+         .reduce(function(previous, current) {
+           return (previous ? previous + ' and ' : '') + 
+                  '['+ current.shortFlag +' | '+ 
+                       current.longFlag +']';
+         }, '');
+};
 
 /** 
  * An object containing built-in rule factory functions 
@@ -363,16 +374,7 @@ exports.rules = {
     var args = Array.prototype.slice.call(arguments);
     return {
       message: function() {
-        return 'You can only pass ' +
-               args.map(function(arg) {
-                 return this.parsedOptions[this.flagToName(arg)];
-               }, this)
-                 .reduce(function(previous, current) {
-                   return (previous ? previous + ' or ' : '') + 
-                          '['+ current.shortFlag +' | '+ 
-                               current.longFlag +']';
-               }, '') +
-               ' as a parameter.';
+        return 'You can only pass ' + argsToOptions.call(this, args) + ' as a parameter.';
       },
 
       check: function() { 
@@ -389,16 +391,7 @@ exports.rules = {
     var args = Array.prototype.slice.call(arguments);
     return {
       message: function() {
-        return 'You must pass parameters ' +
-               args.map(function(arg) {
-                 return this.parsedOptions[this.flagToName(arg)];
-               }, this)
-                 .reduce(function(previous, current) {
-                   return (previous ? previous + ' and ' : '') + 
-                          '['+ current.shortFlag +' | '+ 
-                               current.longFlag +']';
-               }, '') +
-               ' together.';
+        return 'You must pass parameters ' + argsToOptions.call(this, args) + ' together.';
       },
 
       check: function() { 

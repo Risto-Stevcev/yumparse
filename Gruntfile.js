@@ -3,6 +3,9 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-simple-mocha');
   grunt.loadNpmTasks('grunt-jsdoc');
+  grunt.loadNpmTasks('grunt-mocha-istanbul');
+  grunt.loadNpmTasks('grunt-codeclimate');
+
 
   grunt.initConfig({
     clean: ['./doc/'],
@@ -20,7 +23,7 @@ module.exports = function(grunt) {
         /* Error messages url: 
          * https://github.com/jshint/jshint/blob/2.1.4/src/shared/messages.js */
         options: {
-          '-W117': true,  // "'{a}' is not defined."
+         // '-W117': true,  // "'{a}' is not defined."
           '-W097': true,  // "Use the function form of \"use strict\"." 
           '-W064': true,  // "Missing 'new' prefix when invoking a constructor."
         },
@@ -48,9 +51,35 @@ module.exports = function(grunt) {
           destination: 'doc/'
         }
       }
+    },
+    mocha_istanbul: {
+      coverage: {
+        src: 'test',
+        options: {
+          coverage: true,
+          check: {
+            lines: 75,
+            statements: 75
+          },
+          root: './src',
+          reportFormats: ['lcovonly']
+        }
+      },
+    },
+    codeclimate: {
+      options: {
+        file: 'coverage/lcov.info',
+        token: '6c836b2900e44f248f582dfda2651fda13b331a13fe49bb8b29df10ed56efcd1'
+      }
     }
   });
 
+  grunt.event.on('coverage', function(lcov, done){
+      done(); // or done(false); in case of error
+  });
+
+
   grunt.registerTask('test', ['clean', 'jshint', 'simplemocha']);
-  grunt.registerTask('default', ['test', 'jsdoc']);
+  grunt.registerTask('codecoverage', ['mocha_istanbul', 'codeclimate']);
+  grunt.registerTask('default', ['test', 'jsdoc', 'codecoverage']);
 };
