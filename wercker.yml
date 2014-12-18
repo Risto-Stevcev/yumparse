@@ -10,12 +10,17 @@ build:
           echo "node version $(node -v) running"
           echo "npm version $(npm -v) running"
 
+deploy:
+  steps:
+    - script:
+        name: configure git
+        code: |-
+          git config --global user.name "Risto Stevcev"
+          git config --global user.email "risto1@gmail.com"
+
     - script:
         name: deploy to github pages
         code: |-
-          echo $GIT_REMOTE
-          git config --global user.name "Risto Stevcev"
-          git config --global user.email "risto1@gmail.com"
           git commit -am "Updated documentation."
           git checkout gh-pages
           git checkout master -- doc
