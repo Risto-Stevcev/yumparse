@@ -30,7 +30,7 @@ exports.Parser = function(args) {
     this.name = 'YumparseError';
     this.message = message || '';
 
-    if (args.debug === true) {
+    if (args && args.debug === true) {
       var error = new Error(message);
       error.name = this.name;
       this.stack = error.stack;
