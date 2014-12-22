@@ -1,14 +1,40 @@
 var should = require('should');
 var yumparse = require('../src/yumparse.js');
 
+var processArgv = function(args) {
+  process.argv = process.argv.slice(0, 2).concat(args);
+};
+
+var sampleOptions = [
+  { shortFlag: '-b', 
+    longFlag: '--append-boolean',
+    type: Boolean,
+    description: 'Boolean to append' },
+
+  { shortFlag: '-n', 
+    longFlag: '--append-number',
+    type: Number,
+    description: 'Number to append' },
+
+  { shortFlag: '-s', 
+    longFlag: '--append-string',
+    type: String,
+    description: 'String to append' },
+
+  { shortFlag: '-a', 
+    longFlag: '--array-to-append',
+    type: Array,
+    description: 'Array to append to',
+    defaultValue: [] },
+
+  { shortFlag: '-o', 
+    type: Object,
+    description: 'JSON object to append to' }
+];
 
 describe('yumparse.Parser', function() {
   'use strict';
-  var parser, sampleOptions;
-
-  var processArgv = function(args) {
-    process.argv = process.argv.slice(0, 2).concat(args);
-  };
+  var parser;
 
   var sampleOption = {
     shortFlag: '-o', 
@@ -18,29 +44,6 @@ describe('yumparse.Parser', function() {
 
 
   before(function() {
-    sampleOptions = [
-      { shortFlag: '-n', 
-        longFlag: '--append-number',
-        type: Number,
-        description: 'Number to append',
-        required: true },
-
-      { shortFlag: '-s', 
-        longFlag: '--append-string',
-        type: String,
-        description: 'String to append' },
-
-      { shortFlag: '-a', 
-        longFlag: '--array-to-append',
-        type: Array,
-        description: 'Array to append to',
-        defaultValue: [] },
-
-      { shortFlag: '-o', 
-        type: Object,
-        description: 'JSON object to append to' }
-    ];
-
     parser = new yumparse.Parser({
       program: {
         name: process.argv[1],
@@ -56,9 +59,31 @@ describe('yumparse.Parser', function() {
 
   describe('defaults', function() {
     it('should fail to instantiate if no flags are given', function() {
-      (function () {
+      (function() {
         return new yumparse.Parser()
       }).should.throw(/flag needs to be given/);
+    });
+
+    it('should fail if options are passed in as an array', function() {
+      (function() {
+        return new yumparse.Parser({ 
+          options: { shortFlag: 'foo', type: String, description: 'bar' }
+        })
+      }).should.throw(/Options must be passed in as an array/);
+    });
+
+    it('should fail to instantiate if the required flag fields are not given', function() {
+      (function() {
+        return new yumparse.Parser({ options: [{ type: String, description: 'bar' }]})
+      }).should.throw(/requires .* at least shortFlag, type, and description attributes/);
+
+      (function() {
+        return new yumparse.Parser({ options: [{ shortFlag: 'foo', description: 'bar' }]})
+      }).should.throw(/requires .* at least shortFlag, type, and description attributes/);
+
+      (function() {
+        return new yumparse.Parser({ options: [{ shortFlag: 'foo', type: String }]})
+      }).should.throw(/requires .* at least shortFlag, type, and description attributes/);
     });
 
     it('should contain a default template', function() {
@@ -92,6 +117,30 @@ describe('yumparse.Parser', function() {
 
     it('should populate the flag type options', function() {
       parser.flagTypeOptions.should.be.an.Array.and.not.be.empty;
+    });
+
+    it('should add required flags to requiredList', function() {
+      processArgv([]);
+      (function() {
+        var requiredParser = new yumparse.Parser({
+          options: [
+            { shortFlag: '-f',
+              type: Boolean,
+              description: 'foo' },
+            { shortFlag: '-z',
+              type: Boolean,
+              description: 'test required',
+              required: true },
+            { shortFlag: '-w',
+              type: Number,
+              description: 'test required number',
+              required: true }
+          ]
+        });
+        requiredParser.requiredList.should.be.an.Array
+          .and.not.be.empty.and.have.lengthOf(2);
+        requiredParser.parse();
+      }).should.throwError(/Required flags .* were not given/);
     });
   });
 
@@ -127,6 +176,30 @@ describe('yumparse.Parser', function() {
           parser.options[parser.flagToName(option.longFlag)].should.equal(option);
       });
     }); 
+
+    it('should handle default values', function() {
+      var defaultParser = new yumparse.Parser({
+        options: [
+          { shortFlag: '-i', type: Boolean, description: 'foo', defaultValue: true }
+        ]
+      });
+      defaultParser.parse();
+      defaultParser.parsedOptions.i.should.be.an.Object
+        .and.have.property('value').equal(true);
+    });
+
+    it('should handle default values for required flags', function() {
+      var defaultParser = new yumparse.Parser({
+        options: [
+          { shortFlag: '-i', type: Number, description: 'foo', 
+            defaultValue: 24, required: true }
+        ]
+      });
+      defaultParser.parse();
+      defaultParser.parse();
+      defaultParser.parsedOptions.i.should.be.an.Object
+        .and.have.property('value').equal(24);
+    });
   });
 
 
@@ -180,12 +253,33 @@ describe('yumparse.Parser', function() {
     });
 
 
+    describe('checkRequiredFlags', function() {
+      it('should throw an error if a required flag is not set', function() {
+        (function() {
+          processArgv([]);
+          new yumparse.Parser({
+            options: [
+              { shortFlag: '-i', type: Boolean, description: 'Input', required: true }
+            ]
+          }).parse();
+        }).should.throw(/Required flags .* were not given/);
+      });
+    });
+
+
     describe('typeCheck', function() {
       it('should fail if an unrecognized flag is given', function() {
         processArgv(['--foo']);
         (function() {
           parser.parse()
         }).should.throw(/not a valid option/);
+      });
+
+      it('should fail if a value is given for a flag that expects a boolean', function() {
+        processArgv(['-b', '12']);
+        (function() {
+          parser.parse()
+        }).should.throw(/not a boolean value/);
       });
 
       it('should fail if a string is given for a flag that expects a number', function() {
@@ -220,9 +314,9 @@ describe('yumparse.Parser', function() {
 
     describe('checkRules', function() {
       it('should populate the rules array when adding a rule', function() {
-        parser.rules.should.be.empty;
+        parser.rules.should.be.an.Array.and.be.empty;
         parser.addRule(yumparse.rules.orFlags('-s', '-n'));
-        parser.rules.should.not.be.empty.and.is.lengthOf(1);
+        parser.rules.should.be.an.Array.and.not.be.empty.and.is.lengthOf(1);
       });
 
       it('should check the rules and throw an error if a rule fails', function() {
@@ -234,7 +328,7 @@ describe('yumparse.Parser', function() {
 
       it('should continue if the rule succeeds', function() {
         processArgv(['-s', 'foo', '-a', 'bar']);
-        parser.rules.should.not.be.empty;
+        parser.rules.should.be.an.Array.and.not.be.empty.and.have.lengthOf(1);
         parser.parse();
       });
 
@@ -247,17 +341,145 @@ describe('yumparse.Parser', function() {
           parser.parse()
         }).should.throw(/Invalid options/);
       });
+
+      it('should accept multiple rules', function() {
+        before(function() {
+          parser.rules = [];
+          parser.addRule(yumparse.rules.orFlags('-s', '-n'));
+          parser.addRule(yumparse.rules.andFlags('-n', '-a'));
+          parser.rules.should.be.an.Array.and.have.lengthOf(2);
+        });
+
+        it('should succeed if both rules are successfully applied', function() {
+          processArgv(['-n', '12', '-a', '2', '6']);
+          parser.parse();
+          parser.parsedOptions.should.be.an.Object.and.not.be.empty;
+          parser.parsedOptions.should.have.property('n').and.is.equalTo(12);
+          parser.parsedOptions.should.have.property('a').and.is.equalTo([2,6]);
+        });
+
+        it('should fail if the orFlags rule is violated', function() {
+          (function() {
+            processArgv(['-s', 'foo', '-n', '12', '-a', '2', '6']);
+            parser.parse();
+          }).should.throw(/You can only pass .* as a parameter/);
+        });
+
+        it('should fail if the andFlags rule is violated', function() {
+          (function() {
+            processArgv(['-n', '12']);
+            parser.parse();
+          }).should.throw(/You must pass parameters .* together/);
+        });
+      });
     });
   });
 });
 
 
-describe('exports.Rules', function() {
+describe('exports.helpers', function() {
+  var parser;
+  before(function() {
+    parser = new yumparse.Parser({
+      options: sampleOptions
+    });
+  });
+
+
+  describe('exports.helpers.argsToOptions', function() {
+    afterEach(function() {
+      parser.parsedOptions = {};
+    });
+
+    it('should be return an empty string if an empty list is passed', function() {
+      yumparse.helpers.argsToOptions.call(parser, [])
+        .should.be.a.String.and.be.empty;
+    });
+
+    it('should return a formatted string if a non-empty list is passed', function() {
+      yumparse.helpers.argsToOptions.call(parser, ['-n', '-s', '-a'])
+        .should.be.a.String
+        .and.is.equal('[-n | --append-number] or ' + 
+                      '[-s | --append-string] or ' +
+                      '[-a | --array-to-append]');
+    });
+
+    it('should return a formatted string with a custom delimiter if it is passed', function() {
+      yumparse.helpers.argsToOptions.call(parser, ['-n', '-s', '-a'], ', ')
+        .should.be.a.String
+        .and.is.equal('[-n | --append-number], ' + 
+                      '[-s | --append-string], ' +
+                      '[-a | --array-to-append]');
+    });
+  });
+
+
+  describe('exports.helpers.allFlagsPassed', function() {
+    afterEach(function() {
+      parser.parsedOptions = {};
+    });
+
+    it('should return true if the list is empty', function() {
+      processArgv([]);
+      parser.parse();
+      yumparse.helpers.allFlagsPassed.call(parser, []).should.be.true;
+      parser.parsedOptions = {};
+    });
+
+    it('should return false if all flags are not passed', function() {
+      processArgv(['-n', '24', '-s', 'foo']);
+      parser.parse();
+      yumparse.helpers.allFlagsPassed.call(parser, ['-n', '-s', '-a']).should.be.false;
+    });
+
+    it('should return false if all flags are not passed and the args array is empty', function() {
+      processArgv([]);
+      parser.parse();
+      yumparse.helpers.allFlagsPassed.call(parser, ['-n', '-s']).should.be.false;
+    });
+
+    it('should return true if the all options are passed', function() {
+      processArgv(['-n', '24', '-s', 'foo', '-a', '2', '6']);
+      parser.parse();
+      yumparse.helpers.allFlagsPassed.call(parser, ['-n', '-s', '-a']).should.be.true;
+    });
+  });
+
+
+  describe('exports.helpers.oneFlagPassed', function() {
+    beforeEach(function() {
+      processArgv(['-n', '24', '-s', 'foo']);
+      parser.parse();
+    });
+
+    afterEach(function() {
+      parser.parsedOptions = {};
+    });
+
+    it('should return false if the list is empty', function() {
+      yumparse.helpers.oneFlagPassed.call(parser, []).should.be.false;
+    });
+
+    it('should return true if one flag is passed', function() {
+      yumparse.helpers.oneFlagPassed.call(parser, ['-n']).should.be.true;
+    });
+
+    it('should return false if more than one is passed', function() {
+      yumparse.helpers.oneFlagPassed.call(parser, ['-n', '-s']).should.be.false;
+    });
+  });
+});
+
+
+describe('exports.rules', function() {
+  //TODO test w/ no args, one arg, both args, >2 args
+  
+  describe('requiredOrFlags', function() {
+  });
+  
   describe('orFlags', function() {
-    //TODO
   });
 
   describe('andFlags', function() {
-    //TODO
   });
 });

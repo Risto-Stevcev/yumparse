@@ -20,12 +20,44 @@ var mustache = require('mustache');
  */
 exports.Parser = function(args) {
   'use strict';
+
+  /**
+   * Creates a YumparseError
+   * @class
+   * @param {String} message - The error message
+   */
+  function YumparseError(message) {
+    this.name = 'YumparseError';
+    this.message = message || '';
+
+    if (args.debug === true) {
+      var error = new Error(message);
+      error.name = this.name;
+      this.stack = error.stack;
+    }
+  }
+  YumparseError.prototype = Object.create(Error.prototype);
+
   /** 
    * Underline text (xterm color)
    * @type {String}
    * @private
    */
   var _U = '\u001b[4m';
+
+  /**
+   * Bold text (xterm color)
+   * @type {String}
+   * @private
+   */
+  var _B = '\u001b[1m';
+
+  /**
+   * Normal text (xterm color, ends bold text)
+   * @type {String}
+   * @private
+   */
+  var B_ = '\u001b[21m';
 
   /**
    * Normal text (xterm color, ends underlined text)
@@ -40,7 +72,10 @@ exports.Parser = function(args) {
    * @instance
    */
   this.template = '' +
-    '{{{program.description}}}\n\n' +
+    '{{#program.description}}' +
+    _B+'{{{program.name}}}'+B_ + ' - {{{program.description}}}\n' +
+    '{{/program.description}}' +
+    '\n\n' +
 
     _U+'Usage'+U_+'\n' +
     '  {{{program.name}}} [options]\n\n' +
@@ -50,14 +85,14 @@ exports.Parser = function(args) {
     '  {{{flagBlock}}}    {{{description}}}\n' +
     '{{/optionsList}}' +
 
-    '{{#program}}' +
+    '{{#example}}' +
     '\n\n' +
     _U+'Example'+U_+'\n' +
     '  {{{example}}}\n' +
-    '{{/program}}';
+    '{{/example}}';
 
   if (!args || !args.options)
-    throw new Error('At least one flag needs to be given to the Parser');
+    throw new YumparseError('At least one flag needs to be given to the Parser');
 
   if (args.program)
     this.program = args.program;
@@ -70,12 +105,23 @@ exports.Parser = function(args) {
   if (args.template)
     this.template = args.template;
 
+  if (!(args.options instanceof Array))
+    throw new YumparseError('Options must be passed in as an array');
+
   /**
    * The original options list that was passed in
    * @type {Array}
    * @instance
    */
   this.optionsList = args.options;
+
+
+  /** 
+   * The list of options that have a required set to true
+   * @type {Array}
+   * @instance
+   */
+  this.requiredList = [];
   
   /** 
    * The longest flag length
@@ -146,53 +192,71 @@ exports.Parser = function(args) {
   };
 
   /**
+   * Returns an object with parsed (String flag, JSON option) pairs
+   * @type {Object}
+   */
+  this.parsedOptions = {};
+
+  /**
    * Parse options
-   * @param {Object} options - The options to to parse
+   * @param {Object} options - The options to parse
    * @return {Object} The parsed options
    */
   var parseOptions = function(options) {
     var flags = {};
     options.forEach(function(option) {
       if (!option.shortFlag || !option.type || !option.description)
-        throw new Error('Parser object requires a flag that has at least ' + 
-                        'shortFlag, type, and description attributes set.');
+        throw new YumparseError('Parser object requires a flag that has at least ' + 
+                        'shortFlag, type, and description attributes set');
 
       if (!this.flagTypeOptions.some(function(type) {
                                        return type === option.type;
                                      }))
-        throw new Error('The type given is not one of the valid types: ' +
+        throw new YumparseError('The type given is not one of the valid types: ' +
                         this.flagTypeOptions.map(function(type) { 
                           return type.name; 
                         }).join(', '));
 
       if (!option.shortFlag.match(/^-[a-z]/))
-        throw new Error('Short flag "' + option.shortFlag + 
+        throw new YumparseError('Short flag "' + option.shortFlag + 
                         '" must match the format: -[a-z]');
       option.shortFlagName = this.flagToName(option.shortFlag);
       flags[option.shortFlagName] = option;
 
       if (option.longFlag) {
         if (!option.longFlag.match(/^--[-a-z]/))
-          throw new Error('Long flag "' + option.longFlag +
+          throw new YumparseError('Long flag "' + option.longFlag +
                           '" must match the format --[-a-z]*');
         option.longFlagName = this.flagToName(option.longFlag); 
         flags[option.longFlagName] = option;
+      }
+
+      if (option.required)
+        this.requiredList.push(option);
+
+      if (option.defaultValue) {
+        option.value = option.defaultValue;
+        this.parsedOptions[option.shortFlagName] = option;
+
+        if (option.longFlagName)
+          this.parsedOptions[option.longFlagName] = option;
       }
     }, this);
     return flags;
   };
 
   /**
-   * Returns an object with (String flag, JSON option) pairs 
+   * An object with (String flagName, JSON option) pairs 
    * @type {Object}
    */
   this.options = parseOptions.call(this, args.options);
 
-  /**
-   * Returns an object with parsed (String flag, JSON option) pairs
-   * @type {Object}
-   */
-  this.parsedOptions = {};
+  this.options.help = this.options.h = {
+    shortFlag: '-h',
+    longFlag: '--help',
+    type: Boolean,
+    description: 'Help message'
+  };
 
   /** 
    * Contains the list of rules to be checked after parsing
@@ -209,7 +273,7 @@ exports.Parser = function(args) {
   this.addRule = function(rule) {
     this.rules.push(function() {
       if (!rule.check.call(this)) 
-        throw new Error(rule.message ? rule.message.call(this) : 'Invalid options');
+        throw new YumparseError(rule.message ? rule.message.call(this) : 'Invalid options');
     });
   };
 
@@ -241,10 +305,15 @@ exports.Parser = function(args) {
      */
     var addParsedOption = function(flag, flagValue) {
       this.parsedOptions[flag] = this.options[flag];
-      if (this.options[flag].type === Boolean && flagValue)
-        throw new Error('The flag "' + '"');
-      else
-        this.parsedOptions[flag].value = flagValue;
+
+      (function setParsedOptionsValue() {
+        if (flagValue === undefined && this.options[flag].defaultValue)
+          this.parsedOptions[flag].value = this.options[flag].defaultValue;
+        //else if (this.options[flag].type === Boolean && flagValue !== undefined)
+        //  throw new YumparseError('The flag "' + flag + '" of type Boolean does not take a value');
+        else
+          this.parsedOptions[flag].value = flagValue;
+      }).call(this);
     };
 
     /**
@@ -264,7 +333,7 @@ exports.Parser = function(args) {
         if (isFlag) {
           var flagName = this.flagToName(arg);
           if (!this.options[flagName])
-            throw new Error(arg + ' is not a valid option');
+            throw new YumparseError(arg + ' is not a valid option');
 
           if (flag)
             addParsedOption.call(this, flag, flagValue);
@@ -280,9 +349,37 @@ exports.Parser = function(args) {
           else
             flagValue = arg;
         }
-        if (flag && idx === args.length - 1)
-          addParsedOption.call(this, flag, flagValue);
       }, this);
+
+      if (flag)
+        addParsedOption.call(this, flag, flagValue);
+    }).call(this);
+
+    /**
+     * Check if required flags are passed (see {@link module:yumparse.Parser#parse})
+     * @name checkRequiredFlags
+     * @function
+     * @inner
+     * @private
+     * @memberof module:yumparse.Parser
+     * @this module:yumparse.Parser
+     */
+    (function checkRequiredFlags() {
+      var notParsed = [];
+      var requiredIsParsed = true;
+
+      this.requiredList.forEach(function(requiredFlag) {
+        var isParsed = this.parsedOptions[requiredFlag.shortFlagName] !== undefined ||
+                       this.parsedOptions[requiredFlag.longFlagName] !== undefined;
+        if (!isParsed)
+          notParsed.push(requiredFlag.shortFlag +
+                         (requiredFlag.longFlag ? ' | ' + requiredFlag.longFlag : ''));
+
+        requiredIsParsed = requiredIsParsed && isParsed;
+      }, this);
+
+      if (!requiredIsParsed)
+        throw new YumparseError('Required flags ' + JSON.stringify(notParsed) + ' were not given');
     }).call(this);
 
     /**
@@ -300,38 +397,57 @@ exports.Parser = function(args) {
         
         switch (option.type) {
           case Boolean:
-            option.value = true;
+            if (option.value === undefined)
+              option.value = true;
+            else if (typeof JSON.parse(option.value) === 'boolean')
+              option.value = JSON.parse(option.value);
+            else
+              throw new YumparseError(option.value + ' is not a boolean value');
             break;
           case Number:
             if (!isNaN(option.value))
               option.value = parseInt(option.value);
             else
-              throw new Error(option.value + ' is not a number');
+              throw new YumparseError(option.value + ' is not a number');
             break;
           case Array:
             if (!option.value)
-              throw new Error('A value was not given for flag "' + option.shortFlag + '"');
+              throw new YumparseError('A value was not given for flag "' + option.shortFlag + '"');
             break;
           case String:
             if (typeof option.value !== 'string')
-              throw new Error(JSON.stringify(option.value) + ' is not a string');
+              throw new YumparseError(JSON.stringify(option.value) + ' is not a string');
             break;
           case Object:
             if (!option.value)
-              throw new Error('A value was not given for flag "' + option.shortFlag + '"');
+              throw new YumparseError('A value was not given for flag "' + option.shortFlag + '"');
 
             if (typeof option.value !== 'string')
-              throw new Error('JSON needs to be passed as a string');
+              throw new YumparseError('JSON needs to be passed as a string');
 
             try {
               option.value = JSON.parse(option.value);
             }
             catch (e) {
-              throw new Error('Not a JSON object');
+              throw new YumparseError('Not a JSON object');
             }
             break;
         }
       }, this);
+    }).call(this);
+
+    /**
+     * Display parsed help 
+     * @name displayParsedHelp
+     * @function
+     * @inner
+     * @private
+     * @memberof module:yumparse.Parser
+     * @this module:yumparse.Parser 
+     */
+    (function displayParsedHelp() {
+      if (this.parsedOptions.h || this.parsedOptions.help)
+        this.displayHelp();
     }).call(this);
 
     /**
@@ -348,22 +464,55 @@ exports.Parser = function(args) {
         rule.call(this);
       }, this);
     }).call(this);
-
-    if (this.parsedOptions.h || this.parsedOptions.help)
-      this.displayHelp();
   };
 };
 
 
-var argsToOptions = function(args) {
-  return args.map(function(arg) {
-           return this.parsedOptions[this.flagToName(arg)];
-         }, this)
-         .reduce(function(previous, current) {
-           return (previous ? previous + ' and ' : '') + 
-                  '['+ current.shortFlag +' | '+ 
-                       current.longFlag +']';
-         }, '');
+/**
+ * Helper functions
+ * @property {Function} helpers.argsToOptions - Returns an options list from an flags list
+ * @property {Function} helpers.allFlagsPassed - Check if all flags are passed
+ * @property {Function} helpers.oneFlagPassed - Check if exactly one flag is passed
+ */
+exports.helpers = {
+  argsToOptions: function(args, delimiter) {
+    if (!delimiter)
+      delimiter = ' or ';
+
+    return args.map(function(arg) {
+             return this.options[this.flagToName(arg)];
+           }, this)
+           .reduce(function(previous, current) {
+             return (previous ? previous + delimiter : '') + 
+                    (current ? '['+ current.shortFlag +' | '+ current.longFlag +']' : '');
+           }, '');
+  },
+
+  allFlagsPassed: function(flags) {
+    return flags.every(function(flag) {
+      var option = this.options[this.flagToName(flag)];
+      if (!option)
+        return false;
+      else
+        return this.parsedOptions[option.shortFlagName] ||
+               this.parsedOptions[option.longFlagName];
+    }, this);
+  },
+
+  oneFlagPassed: function(flags) {
+    var numFlagsPassed = 0;
+
+    flags.forEach(function(flag) {
+      var option = this.options[this.flagToName(flag)];
+      if (option) {
+        if (this.parsedOptions[option.shortFlagName] !== undefined ||
+            this.parsedOptions[option.longFlagName]  !== undefined)
+          numFlagsPassed += 1;
+      }
+    }, this);
+
+    return numFlagsPassed === 1;
+  }
 };
 
 /** 
@@ -372,36 +521,43 @@ var argsToOptions = function(args) {
  * @property {Object} rules.andFlags - Returns an (AND) rule that compares 2+ options that must be passed together
  */
 exports.rules = {
+  requiredOrFlags: function() {
+    'use strict';
+    var args = Array.prototype.slice.call(arguments);
+    return {
+      message: function() {
+        return 'You must pass either ' + exports.helpers.argsToOptions.call(this, args) + 
+               ' as a parameter.';
+      },
+      check: function() { 
+        return exports.helpers.oneFlagPassed.call(this, args);
+      }
+    };
+  },
+
   orFlags: function() {
     'use strict';
     var args = Array.prototype.slice.call(arguments);
     return {
       message: function() {
-        return 'You can only pass ' + argsToOptions.call(this, args) + ' as a parameter.';
+        return 'You can only pass ' + exports.helpers.argsToOptions.call(this, args) + 
+               ' as a parameter.';
       },
-
       check: function() { 
-        return !args.every(function(arg) {
-          return this.parsedOptions[this.flagToName(arg)] || 
-                 this.parsedOptions[this.flagToName(arg)];
-        }, this);
+        return !exports.helpers.allFlagsPassed.call(this, args);
       }
     };
   },
-  
+
   andFlags: function() {
     'use strict';
     var args = Array.prototype.slice.call(arguments);
     return {
       message: function() {
-        return 'You must pass parameters ' + argsToOptions.call(this, args) + ' together.';
+        return 'You must pass parameters ' + JSON.stringify(args) + ' together.';
       },
-
       check: function() { 
-        return args.every(function(arg) {
-          return this.parsedOptions[arg.shortFlagName] ||
-                 this.parsedOptions[arg.longFlagName];
-        }, this);
+        return exports.helpers.allFlagsPassed.call(this, args);
       }
     };
   }
@@ -409,7 +565,7 @@ exports.rules = {
 
 
 /* 
- * TODO: exports.rules.checkFile - Checks if the type is a file
+ * TODO: exports.rules.checkFile - Checks if the type is a file (path)
  * options - Can be infinite, and it should check each option value of each to see if:
  * The file exists
  * The file matches the required extension
