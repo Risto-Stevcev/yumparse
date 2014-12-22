@@ -91,22 +91,28 @@ exports.Parser = function(args) {
     '  {{{example}}}\n' +
     '{{/example}}';
 
-  if (!args || !args.options)
+  if (!args || !args.options) {
     throw new YumparseError('At least one flag needs to be given to the Parser');
+  }
 
-  if (args.program)
+  if (args.program) {
     this.program = args.program;
-  else
+  }
+  else {
     this.program = { name: process.argv[1] };
+  }
 
-  if (args.example)
+  if (args.example) {
     this.example = args.example;
+  }
 
-  if (args.template)
+  if (args.template) {
     this.template = args.template;
+  }
 
-  if (!(args.options instanceof Array))
+  if (!(args.options instanceof Array)) {
     throw new YumparseError('Options must be passed in as an array');
+  }
 
   /**
    * The original options list that was passed in
@@ -169,8 +175,9 @@ exports.Parser = function(args) {
                flag.slice(idx + 2, flag.length);
       return flag;
     }
-    else if (flag.match(/^-[a-z]$/))
+    else if (flag.match(/^-[a-z]$/)) {
       return flag[1];
+    }
   };
 
   /**
@@ -179,8 +186,9 @@ exports.Parser = function(args) {
    * @returns {String} The flag
    */
   this.nameToFlag = function(name) {
-    if (name.length === 1 && name.match(/[a-z]/))
+    if (name.length === 1 && name.match(/[a-z]/)) {
       return '-' + name;
+    }
     else if (name.length > 1 && name.match(/[A-Za-z]/)) {
       var idx = name.search(/[A-Z]/);
       for (idx; idx > -1; idx = name.search(/[A-Z]/))
@@ -205,21 +213,24 @@ exports.Parser = function(args) {
   var parseOptions = function(options) {
     var flags = {};
     options.forEach(function(option) {
-      if (!option.shortFlag || !option.type || !option.description)
+      if (!option.shortFlag || !option.type || !option.description) {
         throw new YumparseError('Parser object requires a flag that has at least ' + 
                         'shortFlag, type, and description attributes set');
+      }
 
       if (!this.flagTypeOptions.some(function(type) {
                                        return type === option.type;
-                                     }))
+                                     })) {
         throw new YumparseError('The type given is not one of the valid types: ' +
                         this.flagTypeOptions.map(function(type) { 
                           return type.name; 
                         }).join(', '));
+      }
 
-      if (!option.shortFlag.match(/^-[a-z]/))
+      if (!option.shortFlag.match(/^-[a-z]/)) {
         throw new YumparseError('Short flag "' + option.shortFlag + 
                         '" must match the format: -[a-z]');
+      }
       option.shortFlagName = this.flagToName(option.shortFlag);
       flags[option.shortFlagName] = option;
 
@@ -231,15 +242,17 @@ exports.Parser = function(args) {
         flags[option.longFlagName] = option;
       }
 
-      if (option.required)
+      if (option.required) {
         this.requiredList.push(option);
+      }
 
       if (option.defaultValue) {
         option.value = option.defaultValue;
         this.parsedOptions[option.shortFlagName] = option;
 
-        if (option.longFlagName)
+        if (option.longFlagName) {
           this.parsedOptions[option.longFlagName] = option;
+        }
       }
     }, this);
     return flags;
@@ -272,8 +285,9 @@ exports.Parser = function(args) {
    */
   this.addRule = function(rule) {
     this.rules.push(function() {
-      if (!rule.check.call(this)) 
+      if (!rule.check.call(this)) { 
         throw new YumparseError(rule.message ? rule.message.call(this) : 'Invalid options');
+      }
     });
   };
 
@@ -307,12 +321,12 @@ exports.Parser = function(args) {
       this.parsedOptions[flag] = this.options[flag];
 
       (function setParsedOptionsValue() {
-        if (flagValue === undefined && this.options[flag].defaultValue)
+        if (flagValue === undefined && this.options[flag].defaultValue) {
           this.parsedOptions[flag].value = this.options[flag].defaultValue;
-        //else if (this.options[flag].type === Boolean && flagValue !== undefined)
-        //  throw new YumparseError('The flag "' + flag + '" of type Boolean does not take a value');
-        else
+        }
+        else {
           this.parsedOptions[flag].value = flagValue;
+        }
       }).call(this);
     };
 
@@ -328,31 +342,37 @@ exports.Parser = function(args) {
     (function collectFlags() {
       var flag, flagValue;
       var args = process.argv.slice(2);
-      args.forEach(function(arg, idx) {
+      args.forEach(function(arg) {
         var isFlag = arg.match(/^-[a-z]$/) || arg.match(/^--[-a-z]*$/);
         if (isFlag) {
           var flagName = this.flagToName(arg);
-          if (!this.options[flagName])
+          if (!this.options[flagName]) {
             throw new YumparseError(arg + ' is not a valid option');
+          }
 
-          if (flag)
+          if (flag) {
             addParsedOption.call(this, flag, flagValue);
+          }
 
           flag = flagName;
           flagValue = undefined;
         }
         else {
-          if (flagValue && !(flagValue instanceof Array))
+          if (flagValue && !(flagValue instanceof Array)) {
             flagValue = [flagValue];
-          if (flagValue && flagValue instanceof Array)
+          }
+          if (flagValue && flagValue instanceof Array) {
             flagValue.push(arg);
-          else
+          }
+          else {
             flagValue = arg;
+          }
         }
       }, this);
 
-      if (flag)
+      if (flag) {
         addParsedOption.call(this, flag, flagValue);
+      }
     }).call(this);
 
     /**
@@ -371,15 +391,19 @@ exports.Parser = function(args) {
       this.requiredList.forEach(function(requiredFlag) {
         var isParsed = this.parsedOptions[requiredFlag.shortFlagName] !== undefined ||
                        this.parsedOptions[requiredFlag.longFlagName] !== undefined;
-        if (!isParsed)
+
+        if (!isParsed) {
           notParsed.push(requiredFlag.shortFlag +
                          (requiredFlag.longFlag ? ' | ' + requiredFlag.longFlag : ''));
+        }
 
         requiredIsParsed = requiredIsParsed && isParsed;
       }, this);
 
-      if (!requiredIsParsed)
-        throw new YumparseError('Required flags ' + JSON.stringify(notParsed) + ' were not given');
+      if (!requiredIsParsed) {
+        throw new YumparseError('Required flags ' + JSON.stringify(notParsed) + 
+                                ' were not given');
+      }
     }).call(this);
 
     /**
@@ -397,33 +421,41 @@ exports.Parser = function(args) {
         
         switch (option.type) {
           case Boolean:
-            if (option.value === undefined)
+            if (option.value === undefined) {
               option.value = true;
-            else if (typeof JSON.parse(option.value) === 'boolean')
+            }
+            else if (typeof JSON.parse(option.value) === 'boolean') {
               option.value = JSON.parse(option.value);
-            else
+            }
+            else {
               throw new YumparseError(option.value + ' is not a boolean value');
+            }
             break;
           case Number:
-            if (!isNaN(option.value))
+            if (!isNaN(option.value)) {
               option.value = parseInt(option.value);
-            else
+            }
+            else {
               throw new YumparseError(option.value + ' is not a number');
+            }
             break;
           case Array:
-            if (!option.value)
+            if (!option.value) {
               throw new YumparseError('A value was not given for flag "' + option.shortFlag + '"');
+            }
             break;
           case String:
-            if (typeof option.value !== 'string')
+            if (typeof option.value !== 'string') {
               throw new YumparseError(JSON.stringify(option.value) + ' is not a string');
+            }
             break;
           case Object:
-            if (!option.value)
+            if (!option.value) {
               throw new YumparseError('A value was not given for flag "' + option.shortFlag + '"');
-
-            if (typeof option.value !== 'string')
+            }
+            if (typeof option.value !== 'string') {
               throw new YumparseError('JSON needs to be passed as a string');
+            }
 
             try {
               option.value = JSON.parse(option.value);
@@ -432,6 +464,8 @@ exports.Parser = function(args) {
               throw new YumparseError('Not a JSON object');
             }
             break;
+          default:
+            throw new YumparseError('Type ' + option.type + ' is not a valid type'); 
         }
       }, this);
     }).call(this);
@@ -446,8 +480,9 @@ exports.Parser = function(args) {
      * @this module:yumparse.Parser 
      */
     (function displayParsedHelp() {
-      if (this.parsedOptions.h || this.parsedOptions.help)
+      if (this.parsedOptions.h || this.parsedOptions.help) {
         this.displayHelp();
+      }
     }).call(this);
 
     /**
@@ -476,8 +511,9 @@ exports.Parser = function(args) {
  */
 exports.helpers = {
   argsToOptions: function(args, delimiter) {
-    if (!delimiter)
+    if (!delimiter) {
       delimiter = ' or ';
+    }
 
     return args.map(function(arg) {
              return this.options[this.flagToName(arg)];
@@ -491,11 +527,13 @@ exports.helpers = {
   allFlagsPassed: function(flags) {
     return flags.every(function(flag) {
       var option = this.options[this.flagToName(flag)];
-      if (!option)
+      if (!option) {
         return false;
-      else
+      }
+      else {
         return this.parsedOptions[option.shortFlagName] ||
                this.parsedOptions[option.longFlagName];
+      }
     }, this);
   },
 
@@ -506,8 +544,9 @@ exports.helpers = {
       var option = this.options[this.flagToName(flag)];
       if (option) {
         if (this.parsedOptions[option.shortFlagName] !== undefined ||
-            this.parsedOptions[option.longFlagName]  !== undefined)
+            this.parsedOptions[option.longFlagName]  !== undefined) {
           numFlagsPassed += 1;
+        }
       }
     }, this);
 

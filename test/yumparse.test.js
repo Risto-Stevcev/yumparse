@@ -64,12 +64,28 @@ describe('yumparse.Parser', function() {
       }).should.throw(/flag needs to be given/);
     });
 
-    it('should fail if options are passed in as an array', function() {
+    it('should fail if options are not passed in as an array', function() {
       (function() {
         return new yumparse.Parser({ 
-          options: { shortFlag: 'foo', type: String, description: 'bar' }
+          options: { shortFlag: '-f', type: String, description: 'bar' }
         })
       }).should.throw(/Options must be passed in as an array/);
+    });
+
+    it('should have a stack trace if debug mode is turned on', function() {
+      var requiredParser = new yumparse.Parser({
+        debug: true,
+        options: [{ shortFlag: '-f', type: String, description: 'bar', required: true }]
+      });
+
+      try {
+        requiredParser.parse();
+      }
+      catch (e) {
+        e.name.should.be.a.String.and.be.equal('YumparseError');
+        e.message.should.be.a.String.and.not.be.empty;
+        e.stack.should.be.a.String.and.not.be.empty;
+      }
     });
 
     it('should fail to instantiate if the required flag fields are not given', function() {
@@ -116,7 +132,18 @@ describe('yumparse.Parser', function() {
     }); 
 
     it('should populate the flag type options', function() {
-      parser.flagTypeOptions.should.be.an.Array.and.not.be.empty;
+      parser.flagTypeOptions.should.be.an.Array
+        .and.not.be.empty.and.eql([Boolean, Number, String, Array, Object]);
+    });
+
+    it('should fail if an invalid type is passed to a flag', function() {
+      processArgv([]);
+      (function() {
+        var requiredParser = new yumparse.Parser({
+          options: [{ shortFlag: '-f', type: RegExp, description: 'foo' }]
+        });
+        requiredParser.parse()
+      }).should.throw(/The type given is not one of the valid types/);
     });
 
     it('should add required flags to requiredList', function() {
