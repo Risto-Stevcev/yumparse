@@ -469,7 +469,6 @@ exports.Parser = function(args) {
             break;
           default:
             throw new YumparseError('Type ' + option.type + ' is not a valid type'); 
-            break;
         }
       }, this);
     }).call(this);
