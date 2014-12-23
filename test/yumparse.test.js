@@ -32,6 +32,7 @@ var sampleOptions = [
     description: 'JSON object to append to' }
 ];
 
+
 describe('yumparse.Parser', function() {
   'use strict';
   var parser;
@@ -400,113 +401,5 @@ describe('yumparse.Parser', function() {
         });
       });
     });
-  });
-});
-
-
-describe('exports.helpers', function() {
-  var parser;
-  before(function() {
-    parser = new yumparse.Parser({
-      options: sampleOptions
-    });
-  });
-
-
-  describe('exports.helpers.argsToOptions', function() {
-    afterEach(function() {
-      parser.parsedOptions = {};
-    });
-
-    it('should be return an empty string if an empty list is passed', function() {
-      yumparse.helpers.argsToOptions.call(parser, [])
-        .should.be.a.String.and.be.empty;
-    });
-
-    it('should return a formatted string if a non-empty list is passed', function() {
-      yumparse.helpers.argsToOptions.call(parser, ['-n', '-s', '-a'])
-        .should.be.a.String
-        .and.is.equal('[-n | --append-number] or ' + 
-                      '[-s | --append-string] or ' +
-                      '[-a | --array-to-append]');
-    });
-
-    it('should return a formatted string with a custom delimiter if it is passed', function() {
-      yumparse.helpers.argsToOptions.call(parser, ['-n', '-s', '-a'], ', ')
-        .should.be.a.String
-        .and.is.equal('[-n | --append-number], ' + 
-                      '[-s | --append-string], ' +
-                      '[-a | --array-to-append]');
-    });
-  });
-
-
-  describe('exports.helpers.allFlagsPassed', function() {
-    afterEach(function() {
-      parser.parsedOptions = {};
-    });
-
-    it('should return true if the list is empty', function() {
-      processArgv([]);
-      parser.parse();
-      yumparse.helpers.allFlagsPassed.call(parser, []).should.be.true;
-      parser.parsedOptions = {};
-    });
-
-    it('should return false if all flags are not passed', function() {
-      processArgv(['-n', '24', '-s', 'foo']);
-      parser.parse();
-      yumparse.helpers.allFlagsPassed.call(parser, ['-n', '-s', '-a']).should.be.false;
-    });
-
-    it('should return false if all flags are not passed and the args array is empty', function() {
-      processArgv([]);
-      parser.parse();
-      yumparse.helpers.allFlagsPassed.call(parser, ['-n', '-s']).should.be.false;
-    });
-
-    it('should return true if the all options are passed', function() {
-      processArgv(['-n', '24', '-s', 'foo', '-a', '2', '6']);
-      parser.parse();
-      yumparse.helpers.allFlagsPassed.call(parser, ['-n', '-s', '-a']).should.be.true;
-    });
-  });
-
-
-  describe('exports.helpers.oneFlagPassed', function() {
-    beforeEach(function() {
-      processArgv(['-n', '24', '-s', 'foo']);
-      parser.parse();
-    });
-
-    afterEach(function() {
-      parser.parsedOptions = {};
-    });
-
-    it('should return false if the list is empty', function() {
-      yumparse.helpers.oneFlagPassed.call(parser, []).should.be.false;
-    });
-
-    it('should return true if one flag is passed', function() {
-      yumparse.helpers.oneFlagPassed.call(parser, ['-n']).should.be.true;
-    });
-
-    it('should return false if more than one is passed', function() {
-      yumparse.helpers.oneFlagPassed.call(parser, ['-n', '-s']).should.be.false;
-    });
-  });
-});
-
-
-describe('exports.rules', function() {
-  //TODO test w/ no args, one arg, both args, >2 args
-  
-  describe('requiredOrFlags', function() {
-  });
-  
-  describe('orFlags', function() {
-  });
-
-  describe('andFlags', function() {
   });
 });
