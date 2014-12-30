@@ -419,27 +419,27 @@ Contains built-in rule *factory* functions that return a rule object, which can 
 ##### *Function* **`yumparse`.`rules`.`requiredOrFlags`**(*String* flags...) -> *Object*
 
 A rule *factory* that takes a variable number of Strings in `shortFlag` or `longFlag` format.  
-Returns a rule that checks *if one and **exactly** one flag from the list of flags passed was parsed*.
+Returns a rule that checks *if one and* **exactly** *one flag from the list of flags passed was parsed*.
 
 ##### *Function* **`yumparse`.`rules`.`orFlags`**(*String* flags...) -> *Object*
 
 A rule *factory* that takes a variable number of Strings in `shortFlag` or `longFlag` format.  
-Returns a rule that checks *if zero or **only** one flag from the list of flags passed was parsed*. It will **not** fail if no flags are passed.
+Returns a rule that checks *if zero or* **only** *one flag from the list of flags passed was parsed*. It will **not** fail if no flags are passed.
 
 ##### *Function* **`yumparse`.`rules`.`andFlagSets`**(*Array* flagSets...) -> *Object*
 
 A rule *factory* that takes a variable number of Arrays containing a variable number of Strings in `shortFlag` or `longFlag` format.  
-Returns a rule that checks *if one and **exactly** one flag from each array passed was parsed **and** a flag from every array passed was parsed*. It can be thought of as a combination of the rules `yumparse`.`rules`.`andFlags` and `yumparse`.`rules`.`requiredOrFlags`.
+Returns a rule that checks *if one and* **exactly** *one flag from each array passed was parsed* **and** *a flag from every array passed was parsed*. It can be thought of as a combination of the rules `yumparse`.`rules`.`andFlags` and `yumparse`.`rules`.`requiredOrFlags`.
 
 ##### *Function* **`yumparse`.`rules`.`andFlags`**(*String* flags...) -> *Object*
 
 A rule *factory* that takes a variable number of Strings in `shortFlag` or `longFlag` format.  
-Returns a rule that checks *if **every** flag from the list of flags passed was parsed*.
+Returns a rule that checks *if* **every** *flag from the list of flags passed was parsed*.
 
 ##### *Function* **`yumparse`.`rules`.`fileExists`**(*String* flags...) -> *Object*
 
 A rule *factory* that takes a variable number of Strings in `shortFlag` or `longFlag` format.  
-Returns a rule that checks *if the **value** from each of the list of flags passed is a path to a file that **exists***. 
+Returns a rule that checks *if the* **value** *from each of the list of flags passed is a path to a file that* **exists**. 
 
 
 
