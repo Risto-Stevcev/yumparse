@@ -231,12 +231,22 @@ describe('rules', function() {
         options: [
           { shortFlag: '-i', type: String, description: 'input' },
           { shortFlag: '-o', type: String, description: 'output' },
-          { shortFlag: '-l', type: String, description: 'log' }
+          { shortFlag: '-l', type: String, description: 'log' },
+          { shortFlag: '-m', type: Array, description: 'multiple inputs' }
         ]
       })
     });
 
+
     describe('with a single flag', function() {
+      it('should return false if the string points to a valid file path', function() {
+        processArgv(['-i', '']);
+        filePathParser.addRule(yumparse.rules.fileExists('-i'));
+        (function() {
+          filePathParser.parse()
+        }).should.throw(/One of the following file paths .* does not exist/);
+      });
+
       it('should return true if the string points to a valid file path', function() {
         processArgv(['-i', __filename]);
         filePathParser.addRule(yumparse.rules.fileExists('-i'));
@@ -246,7 +256,7 @@ describe('rules', function() {
       });
 
       it('should return false if the string does not point to a valid file path', function() {
-        processArgv(['-i', '']);
+        processArgv(['-i', __dirname + '/blah']);
         filePathParser.addRule(yumparse.rules.fileExists('-i'));
         (function() {
           filePathParser.parse()
@@ -257,7 +267,9 @@ describe('rules', function() {
 
     describe('with multiple flags', function() {
       it('should return true if the string points to a valid file path', function() {
-        processArgv(['-i', __filename, '-o', __dirname, '-l', __dirname + '/yumparse.test.js']);
+        processArgv(['-i', __filename, 
+                     '-o', __dirname, 
+                     '-l', __dirname + '/yumparse.test.js']);
         filePathParser.addRule(yumparse.rules.fileExists('-i', '-o', '-l'));
         filePathParser.parse();
         filePathParser.parsedOptions.should.be.an.Object
@@ -269,8 +281,27 @@ describe('rules', function() {
       });
 
       it('should return false if the string does not point to a valid file path', function() {
-        processArgv(['-i', __filename, '-o', '', '-l', __dirname]);
+        processArgv(['-i', __filename, '-o', __dirname + '/blah', '-l', __dirname]);
         filePathParser.addRule(yumparse.rules.fileExists('-i', '-o', '-l'));
+        (function() {
+          filePathParser.parse()
+        }).should.throw(/One of the following file paths .* does not exist/);
+      });
+    });
+
+
+    describe('with multiple file paths', function() {
+      it('should return true if multiple file paths are given that exist', function() {
+        processArgv(['-m', __filename, __dirname]);
+        filePathParser.addRule(yumparse.rules.fileExists('-m'));
+        filePathParser.parse();
+        filePathParser.parsedOptions.should.be.an.Object.and.have.property('m')
+          .with.property('value', [__filename, __dirname]).of.an.Array;
+      });
+
+      it('should fail if multiple file paths are given and one or more do not exist', function() {
+        processArgv(['-m', __filename, __dirname, __dirname + '/blah']);
+        filePathParser.addRule(yumparse.rules.fileExists('-m'));
         (function() {
           filePathParser.parse()
         }).should.throw(/One of the following file paths .* does not exist/);
@@ -305,17 +336,23 @@ describe('rules', function() {
 
     it('should succeed if a flag in each flag set is given', function() {
       processArgv(['-b', '-d', '-e']);
-      flagSetsParser.addRule(yumparse.rules.andFlagSets(['-a', '-b', '-c'], ['-d'], ['-e', '-f']));
+      flagSetsParser.addRule(yumparse.rules.andFlagSets(['-a', '-b', '-c'], 
+                                                        ['-d'], 
+                                                        ['-e', '-f']));
       flagSetsParser.parse();
       flagSetsParser.parsedOptions.should.be.an.Object
         .and.have.property('b').with.property('value', true);
-      flagSetsParser.parsedOptions.should.have.property('d').with.property('value', true);
-      flagSetsParser.parsedOptions.should.have.property('e').with.property('value', true);
+      flagSetsParser.parsedOptions.should.have.property('d')
+        .with.property('value', true);
+      flagSetsParser.parsedOptions.should.have.property('e')
+        .with.property('value', true);
     });
 
     it('should fail if a flag in one of the flag sets is not given', function() {
       processArgv(['-b', '-d']);
-      flagSetsParser.addRule(yumparse.rules.andFlagSets(['-a', '-b', '-c'], ['-d'], ['-e', '-f']));
+      flagSetsParser.addRule(yumparse.rules.andFlagSets(['-a', '-b', '-c'], 
+                                                        ['-d'], 
+                                                        ['-e', '-f']));
       (function() {
         flagSetsParser.parse()
       }).should.throw(/flag must be passed from each set/);
@@ -323,7 +360,9 @@ describe('rules', function() {
 
     it('should fail if two flags from the same set is given', function() {
       processArgv(['-a', '-b', '-d', '-e']);
-      flagSetsParser.addRule(yumparse.rules.andFlagSets(['-a', '-b', '-c'], ['-d'], ['-e', '-f']));
+      flagSetsParser.addRule(yumparse.rules.andFlagSets(['-a', '-b', '-c'], 
+                                                        ['-d'], 
+                                                        ['-e', '-f']));
       (function() {
         flagSetsParser.parse()
       }).should.throw(/flag must be passed from each set/);

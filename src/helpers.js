@@ -71,7 +71,22 @@ module.exports = {
     'use strict';
     return flags.every(function(flag) {
       var option = this.options[this.flagToName(flag)];
-      return option.type === String ? fs.existsSync(option.value) : false;
+      if (option.value !== undefined) {
+        if (option.type === Array) {
+          return option.value.every(function(flagName) {
+            return fs.existsSync(flagName);
+          });
+        }
+        else if (option.type === String) {
+          return fs.existsSync(option.value);
+        }
+        else {
+          return false;
+        }
+      }
+      else {
+        return true;
+      }
     }, this);
   }
 };

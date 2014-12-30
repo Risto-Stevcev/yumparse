@@ -324,6 +324,18 @@ describe('yumparse.Parser', function() {
         }).should.throw(/not a string/);
       });
 
+      it('should return an array for an array type', function() {
+        processArgv(['-a', 'foo', 'bar']);
+        parser.parse();
+        parser.parsedOptions.a.value.should.be.an.Array.and.eql(['foo', 'bar']);
+      });
+
+      it('should return a singleton array if a single parameter is given for an array type', function() {
+        processArgv(['-a', 'bar']);
+        parser.parse();
+        parser.parsedOptions.a.value.should.be.an.Array.and.eql(['bar']);
+      });
+
       it('should fail if a JSON object is not passed as a string', function() {
         processArgv(['-o', '{foo:', '"bar"}']);
         (function() {

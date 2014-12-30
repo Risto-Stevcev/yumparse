@@ -21,8 +21,7 @@ module.exports = function(grunt) {
       ignore_warning: {
         /* Error messages url: 
          * https://github.com/jshint/jshint/blob/2.1.4/src/shared/messages.js */
-        options: {
-        },
+        options: {},
         src: ['src/*.js']
       },
     },

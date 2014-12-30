@@ -127,7 +127,7 @@ describe('helpers', function() {
   });
 
 
-  describe('helpers.isFilePath', function() {
+  describe('helpers.fileExists', function() {
     var filePathParser;
     beforeEach(function() {
       filePathParser = new yumparse.Parser({
@@ -141,6 +141,12 @@ describe('helpers', function() {
 
 
     describe('with a single flag', function() {
+      it('should return false if the string points to a valid file path', function() {
+        processArgv(['-i', '']);
+        filePathParser.parse();
+        yumparse.helpers.fileExists.call(filePathParser, ['-i']).should.be.false;
+      });
+
       it('should return true if the string points to a valid file path', function() {
         processArgv(['-i', __filename]);
         filePathParser.parse();
@@ -148,7 +154,7 @@ describe('helpers', function() {
       });
 
       it('should return false if the string does not point to a valid file path', function() {
-        processArgv(['-i', '']);
+        processArgv(['-i', __dirname + '/blah']);
         filePathParser.parse();
         yumparse.helpers.fileExists.call(filePathParser, ['-i']).should.be.false;
       });
@@ -157,15 +163,19 @@ describe('helpers', function() {
 
     describe('with multiple flags', function() {
       it('should return true if the string points to a valid file path', function() {
-        processArgv(['-i', __filename, '-o', __dirname, '-l', __dirname + '/yumparse.test.js']);
+        processArgv(['-i', __filename, 
+                     '-o', __dirname, 
+                     '-l', __dirname + '/yumparse.test.js']);
         filePathParser.parse();
-        yumparse.helpers.fileExists.call(filePathParser, ['-i', '-o', '-l']).should.be.true;
+        yumparse.helpers.fileExists.call(filePathParser, ['-i', '-o', '-l'])
+          .should.be.true;
       });
 
       it('should return false if the string does not point to a valid file path', function() {
-        processArgv(['-i', __filename, '-o', '', '-l', __dirname]);
+        processArgv(['-i', __filename, '-o', __dirname + '/blah', '-l', __dirname]);
         filePathParser.parse();
-        yumparse.helpers.fileExists.call(filePathParser, ['-i', '-o', '-l']).should.be.false;
+        yumparse.helpers.fileExists.call(filePathParser, ['-i', '-o', '-l'])
+          .should.be.false;
       });
     });
   });
@@ -195,27 +205,34 @@ describe('helpers', function() {
     it('should return true if a flag in a single flag set is given', function() {
       processArgv(['-a']);
       flagSetsParser.parse();
-      yumparse.helpers.allFlagSetsPassed.call(flagSetsParser, [['-a','-b','-c']]).should.be.true;
+      yumparse.helpers.allFlagSetsPassed.call(flagSetsParser, [['-a','-b','-c']])
+        .should.be.true;
     });
 
     it('should return true if a flag in each flag set is given', function() {
       processArgv(['-b', '-d', '-e']);
       flagSetsParser.parse();
-      yumparse.helpers.allFlagSetsPassed.call(flagSetsParser, [['-a','-b','-c'], ['-d'], ['-e', '-f']])
+      yumparse.helpers.allFlagSetsPassed.call(flagSetsParser, [['-a','-b','-c'], 
+                                                               ['-d'], 
+                                                               ['-e', '-f']])
         .should.be.true;
     });
 
     it('should return false if a flag in one of the flag sets is not given', function() {
       processArgv(['-b', '-d']);
       flagSetsParser.parse();
-      yumparse.helpers.allFlagSetsPassed.call(flagSetsParser, [['-a','-b','-c'], ['-d'], ['-e', '-f']])
+      yumparse.helpers.allFlagSetsPassed.call(flagSetsParser, [['-a','-b','-c'], 
+                                                               ['-d'], 
+                                                               ['-e', '-f']])
         .should.be.false;
     });
 
     it('should return false if two flags from the same set is given', function() {
       processArgv(['-a', '-b', '-d', '-e']);
       flagSetsParser.parse();
-      yumparse.helpers.allFlagSetsPassed.call(flagSetsParser, [['-a','-b','-c'], ['-d'], ['-e', '-f']])
+      yumparse.helpers.allFlagSetsPassed.call(flagSetsParser, [['-a','-b','-c'], 
+                                                               ['-d'], 
+                                                               ['-e', '-f']])
         .should.be.false;
     });
   });

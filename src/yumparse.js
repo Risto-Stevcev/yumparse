@@ -145,18 +145,17 @@ exports.Parser = function(args) {
    */
   this.flagBlock = function() {
     return (this.longFlag ?
-            
             (new Array(longestFlag - this.longFlag.length + 1)).join(' ') + 
             this.longFlag + ', ' :
-
-            (new Array(longestFlag + 1)).join(' ') + '  ') +
-            this.shortFlag;
+            (new Array(longestFlag + 1)).join(' ') + '  ') + 
+      
+           this.shortFlag;
   };
 
   /** 
    * Available flag options 
    * @readonly
-   * @enum {Object}
+   * @enum {Array}
    */
   this.flagTypeOptions = [Boolean, Number, String, Array, Object];
 
@@ -445,6 +444,9 @@ exports.Parser = function(args) {
           case Array:
             if (!option.value) {
               throw new YumparseError('A value was not given for flag "' + option.shortFlag + '"');
+            }
+            if (!(option.value instanceof Array) && (typeof option.value === 'string')) {
+                option.value = [option.value];
             }
             break;
           case String:
