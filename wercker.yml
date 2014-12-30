@@ -21,8 +21,8 @@ deploy:
     - script:
         name: deploy to github pages
         code: |-
-          git commit -am "Updated documentation."
+          git stash save
           git checkout gh-pages
-          git checkout master -- doc
+          git stash pop
           git commit -am "Updated documentation."
           git push -f $GIT_REMOTE gh-pages
