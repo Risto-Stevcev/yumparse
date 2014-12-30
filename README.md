@@ -7,6 +7,8 @@ A simple, lightweight and flexible command line argument parser.
 [![Test Coverage][wercker-image]][github-url]
 [![Code Coverage][coverage-image]][climate-url]
 
+[View the documentation][github-pages-url]
+
 
 ## Basic usage
 
@@ -470,13 +472,12 @@ Copyright © 2014, Risto Stevcev
 
 
 [coverage-image]: https://img.shields.io/codeclimate/coverage/github/Risto-Stevcev/yumparse.svg?style=flat
-[climate-url]: https://codeclimate.com/github/Risto-Stevcev/yumparse
-
 [wercker-image]: https://img.shields.io/wercker/ci/549198836b3ba8733d8da6cd.svg?style=flat
-[github-url]: https://github.com/Risto-Stevcev/yumparse
-
 [downloads-image]: https://img.shields.io/npm/dm/yumparse.svg?style=flat
 [npm-image]: https://img.shields.io/npm/v/yumparse.svg?style=flat
-[npm-url]: https://npmjs.org/package/yumparse
 
+[climate-url]: https://codeclimate.com/github/Risto-Stevcev/yumparse
+[npm-url]: https://npmjs.org/package/yumparse
 [mustache-url]: https://www.npmjs.com/package/mustache
+[github-url]: https://github.com/Risto-Stevcev/yumparse
+[github-pages-url]: http://risto-stevcev.github.io/yumparse
