@@ -1,11 +1,16 @@
 {
   "name": "yumparse",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A simple, lightweight and flexible command line argument parser.",
   "main": "./src/yumparse.js",
   "scripts": {
     "test": "./node_modules/.bin/grunt"
   },
+  "repository": {
+    "type": "git",
+    "url": "Risto-Stevcev/yumparse"
+  },
+  "homepage": "http://risto-stevcev.github.io/yumparse/",
   "keywords": [
     "argument",
     "parser",
